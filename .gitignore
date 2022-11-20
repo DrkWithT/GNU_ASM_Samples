@@ -1,0 +1,6 @@
+# gitignore
+# Project: Example GAS Programs
+
+# Ignore binaries:
+*.o
+./bin/*.out
