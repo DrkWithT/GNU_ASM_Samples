@@ -7,7 +7,7 @@
 # PROCEDURE writeHexW()
 # Writes hex digits for a WORD into an ASCII buffer.
 # Params: %rdi is buf_ptr, %rsi is number.
-# Uses: %rbx for buffer end ptr, %rcx for shifts, %r12 for mask, %r13 for curr_val (raw digit value), $r14 for 
+# Uses: %rbx for buffer end ptr, %rcx for shifts, %r12 for mask, %r13 for curr_val (raw digit value), $r14 for constant $10.
 # Returns: 0 always.
 .global writeHexW
 writeHexW:
@@ -51,7 +51,7 @@ BeginLoop:  # WHILE (ADDR buf_ptr != ADDR end_ptr):
   cmp %r14, %r13
   jae ElseAlpha
 
-IfNumeric:  # IF (%r8 < 10):
+IfNumeric:  # IF (c < 10):
   # tweak numeric value 0-9 by ASCII offset 48
   add $48, %r13
   jmp EndIfs
