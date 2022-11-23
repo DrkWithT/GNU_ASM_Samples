@@ -4,7 +4,7 @@
 
 # assembler vars
 CC := gcc
-CFLAGS := -no-pie -g -Wall -Werror
+CFLAGS := -Wall -Werror -no-pie -g
 
 BIN_DIR := ./bin
 SRC_DIR := ./src
@@ -35,4 +35,5 @@ $(BIN_DIR)/%.out: %.o
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f $(EXES) *.o
+	@rm -f $(EXES) *.o
+	@echo "Cleaned Project."
