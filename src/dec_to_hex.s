@@ -19,8 +19,8 @@ checkInput:
   push %r13
 
   # init local vars
-  mov $48, %rbx    # low = 48
-  mov $57, %rcx    # high = 57
+  mov $48, %rbx    # low = 48 : '0'
+  mov $57, %rcx    # high = 57 : '9'
 
   mov %rdi, %r12
   add $4, %r12     # buf_term = buf_ptr + 4
@@ -66,12 +66,55 @@ EndCheck:
 # PROCEDURE decodeDec4
 # Parses a 4 digit string as a unsigned decimal integer.
 # Params: %rdi is buf_ptr. (right to left by digits!).
-# Uses: %rbx for buf_end, %rcx for base ($10), %r12 for tem_val, %r13 for temp_char
+# Uses: %rbx for buf_curr_ptr, %rcx for base ($10), %r12 for temp_val, %r13 for digit
 # Returns: %rax is 0 on error, but above 0 on success. 
 .global decodeDec4
 decodeDec4:
-  # todo
-  mov $0, %rax
+  # preserve registers
+  push %rbx
+  push %rcx
+  push %r12
+  push %r13
+
+  # init local vars
+  mov %rdi, %rbx
+  add $3, %rbx    # char *buf_curr_ptr = (buf_ptr + 3)  // char of lowest place value digit
+
+  mov $10, %rcx   # uint base = 10
+  mov $0, %r12    # uint temp_val = 0
+  mov $0, %r13    # uchar digit = '\0'
+  mov $0, %rax    # uint result = 0
+
+  # begin 4-dec-digit parse
+BeginToInt:
+  # WHILE (buf_ptr != buf_term):
+  cmp %rdi, %rbx
+  je EndToInt
+
+  # get current digit value
+  mov $0, %r13
+  movb (%rbx), %r13b    # digit = *buf_curr_ptr  // with zeroing
+  subb $48, %r13b       # digit -= '0'
+
+  # calculate partial result
+  mul %rcx, %r13
+
+  # update result
+  add %r13, %rax        # result += digit * 10
+
+  # update loop vars
+  dec %rbx              # buf_curr_ptr--
+  mul %rcx, %rcx        # base *= 10
+  jmp BeginToInt
+
+EndToInt:
+  # restore registers
+  pop %r13
+  pop %r12
+  pop %rcx
+  pop %rbx
+
+  # return with result
   ret
 
 # PROCEDURE writeHex4
@@ -81,13 +124,13 @@ decodeDec4:
 # Returns: %rax is 0 on success, but 1 on error.
 .global writeHex4
 writeHex4:
-  # todo
+  
   mov $0, %rax
   ret
 
 .global main
 main:
-# prompt for 4 input digits
+  # prompt for 4 input digits
   mov $1, %rax          # syscall write
   mov $1, %rdi          # use stdout
   mov $prompt_msg, %rsi
@@ -98,7 +141,7 @@ main:
   mov $input_buf, %rsi
   mov $input_c, %rdx
 
-# validate input
+  # validate input
   mov $input_buf, %rdi
   call checkInput
 
@@ -109,14 +152,20 @@ main:
 IfOkay:
   # convert if input is valid
   # TODO: Use decodeDec4 and writeHex4!
+  mov $input_buf, %rdi    # put 4 digit input
+  call decodeDec4
 
-# print input from its buffer
+  # print result from its buffer
   mov $1, %rax              # syscall write
   mov $1, %rdi              # use stdout
   mov $output_buf, %rsi
   mov $output_write_c, %rdx
 
 IfOops:
+  mov $1, %rax              # syscall write
+  mov $1, %rdi              # use stdout
+  mov $oops_msg, %rsi
+  mov $oops_len, %rdx
 
 EndIfs:
   mov $0, %rax
