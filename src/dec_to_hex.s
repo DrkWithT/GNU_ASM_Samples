@@ -57,13 +57,13 @@ SkipBad:
 
 EndCheck:
   # restore registers
-  push %r13
-  push %r12
-  push %rcx
-  push %rbx
+  pop %r13
+  pop %r12
+  pop %rcx
+  pop %rbx
   ret
 
-# PROCEDURE decodeDec4
+# PROCEDURE decodeDec4 FIX??
 # Parses a 4 digit string as a unsigned decimal integer.
 # Params: %rdi is buf_ptr. (right to left by digits!).
 # Uses: %rbx for buf_curr_ptr, %rcx for factor 10, %rax for base, %r12 for digit, %r13 for result, %r14 for temp
@@ -131,7 +131,7 @@ EndToInt:
   pop %rbx
   ret
 
-# PROCEDURE writeHex4
+# PROCEDURE writeHex4 OK??
 # Writes the hex representation of the resulting decimal integer from Proc. decodeDec4.
 # Params: %rdi is dst_buf. %rsi is the decimal number.
 # Uses: %rbx for buf_end, %rcx for shifts, %r12 for mask, %r13 for curr_val (raw_digit_value), %r14 for constant $10, %r15 for result
@@ -216,18 +216,20 @@ main:
   mov $1, %rdi          # use stdout
   mov $prompt_msg, %rsi
   mov $prompt_len, %rdx
+  syscall
 
   mov $0, %rax          # syscall read
   mov $0, %rdi          # use stdin
   mov $input_buf, %rsi
   mov $input_c, %rdx
+  syscall
 
   # validate input
   mov $input_buf, %rdi
   call checkInput
 
   cmp $1, %rax    # IF (checkInput(input_buf) != 1): // do conversion if input is valid
-  je IfOops
+  je EndIfs
 
 IfOkay:
   # convert if input is valid
@@ -243,13 +245,7 @@ IfOkay:
   mov $1, %rdi              # use stdout
   mov $output_buf, %rsi
   mov $output_write_c, %rdx
-
-  jmp EndIfs
-IfOops:
-  mov $1, %rax              # syscall write
-  mov $1, %rdi              # use stdout
-  mov $oops_msg, %rsi
-  mov $oops_len, %rdx
+  syscall
 
 EndIfs:
   mov $0, %rax
@@ -263,22 +259,16 @@ prompt_msg:
 prompt_len:
   .long 24
 
-oops_msg:
-  .ascii "Invalid input.\n"
-
-oops_len:
-  .long 15
-
 ### Input Storage ###
 input_buf:
-  .ascii "\0\0\0\0"
+  .ascii "0000"
 
 input_c:
   .long 4
 
 ### Output Storage ###
 output_buf:
-  .ascii "0000\n\0"
+  .ascii "0000\n"
 
 output_write_c:
   .long 5
