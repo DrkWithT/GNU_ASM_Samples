@@ -6,7 +6,7 @@
 # PROCEDURE parseDec()
 # Desc: Parses an n-digit decimal number literal into an unsigned value.
 # Params: %rdi for address of literal's least significant digit, %rsi for digit count.
-# Uses: %rbx for place value, %rcx for digit value, %rdx for division remainder, %r12 for base 10, %r13 and %r14 for temp1 and sub_result, %r15 for loop counter (ends at 0).
+# Uses: %rbx for place value, %rcx for digit value, %r12 for base 10, %r13 and %r14 for temp1 and sub_result, %r15 for loop counter (ends at 0).
 # Returns: %rax for unsigned result.
 .global parseDec
 parseDec:
@@ -82,41 +82,113 @@ EndConvert:
     pop %rbx
     ret
 
+# PROCEDURE writeHexW() // TAKEN FROM: write_hex.s 
+# Writes hex digits for a WORD into an ASCII buffer.
+# Params: %rdi is buf_ptr, %rsi is number.
+# Uses: %rbx for buffer end ptr, %rcx for shifts, %r12 for mask, %r13 for curr_val (raw digit value), $r14 for constant $10.
+# Returns: 0 always.
+.global writeHexW
+writeHexW:
+  # preserve regs
+  push %rbx
+  push %rcx
+  push %r12
+  push %r13
+  push %r14
+
+  # init end_ptr
+  mov %rdi, %rbx
+  add $4, %rbx  # end_ptr = ADDR (buf_ptr + 4)
+
+  # init shifts
+  mov $0, %rcx  # BZERO(shifts)
+  mov $12, %cl  # shifts = 12
+
+  # init mask
+  mov $15, %r12
+  shl %cl, %r12
+
+  # init curr_val
+  mov $0, %r13
+
+  # init min_alpha
+  mov $10, %r14
+
+BeginLoop:  # WHILE (ADDR buf_ptr != ADDR end_ptr):
+  cmp %rdi, %rbx
+  je EndLoop
+
+  # get raw half byte for hex with zeroed upper bytes
+  mov %rsi, %r13
+  and %r12, %r13  # curr_val = (num & mask)
+
+  # decode to hex digit value
+  shr %cl, %r13  # curr_val >>= shifts
+
+  # check if digit value is numeric or alpha
+  cmp %r14, %r13
+  jae ElseAlpha
+
+IfNumeric:  # IF (c < 10):
+  # tweak numeric value 0-9 by ASCII offset 48
+  add $48, %r13
+  jmp EndIfs
+
+ElseAlpha:  # ELSE:
+  # tweak alpha value 10-15 by ASCII offset 55
+  add $55, %r13
+
+EndIfs:
+  # write converted hex digit to buffer
+  mov %r13b, (%rdi)
+
+  inc %rdi  # buf_ptr++
+  
+  # adjust bit mask vars
+  sub $4, %cl  # shifts -= 4
+  shr $4, %r12 # mask >>= 4
+  
+  jmp BeginLoop
+
+EndLoop:
+  # restore regs
+  pop %r14
+  pop %r13
+  pop %r12
+  pop %rcx
+  pop %rbx
+
+  mov $0, %rax  # RETURN 0
+  ret
+
 .global main
 main:
     # 1. Call parseHex4... then compare return result to $1234 in %r8!
     mov $input_buffer, %rdi
     mov $4, %rsi
-    call parseDec            # test_number = parseDec(input_buffer + 3, 4);
+    call parseDec            # test_number = parseDec(input_buffer + 3, 4); // must be 1234
 
-    mov $1234, %r8
-    cmp %r8, %rax
-    jne FailBlock
+    # 2. write hex literal for previous result
+    mov $output_buffer, %rdi
+    mov %rax, %rsi
+    call writeHexW
 
-    # 2a. print success msg if 1234 was parsed from "1234".
-    mov $1, %rax            # syscall write
-    mov $1, %rdi            # use stdout
-    mov $success_msg, %rsi  # src is success_msg
-    mov $11, %rdx           # write_len is 11
+    # 3. print hex literal for previous result
+    mov $1, %rax              # syscall write
+    mov $1, %rdi              # use stdout
+    mov $output_buffer, %rsi  # src is success_msg
+    mov $4, %rdx              # write_len is 4
     syscall
 
-    jmp EndBlock1
-
-FailBlock:
-    # 2b. print failure msg if 1234 was not parsed correctly.
-    mov $1, %rax            # syscall write
-    mov $1, %rdi            # use stdout
-    mov $fail_msg, %rsi     # src is fail_msg
-    mov $11, %rdx           # write_len is 11
-    syscall
-
-EndBlock1:
     mov $0, %rax
     ret
 
 .data
 input_buffer:
-    .ascii "1234"            # char input_buffer[5] = "1234"; // real len is 4
+    .ascii "1234"              # char input_buffer[5] = "1234"; // real len is 4
+
+output_buffer: # should be hex 0x04D2?
+    .ascii "\0\0\0\0"          # char output_buffer[5] = ""; // write len is 4
 
 success_msg:
     .ascii "Number OK.\n"      # const char success_msg[12] = "Number OK.\n"; // real len is 11
