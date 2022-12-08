@@ -22,7 +22,9 @@ parseDec:
     push %rbp
     mov %rsp, %rbp
     sub $8, %rsp
-    mov $0, -8(%rbp)  # unsigned long sub_result = 0;  // sub-sum of digit_val * place_val
+
+    mov $0, %r13
+    movq %r13, -8(%rbp)  # unsigned long sub_result = 0;  // sub-sum of digit_val * place_val
 
     # prepare literal string pointer to right most char
     add %rsi, %rdi
@@ -31,12 +33,14 @@ parseDec:
     # prepare locals: place_val, digit_val, base, temp1, temp2, end_iter, result
     mov $1, %rbx    # place_val = 1;
     mov $0, %rcx    # digit_val = 0;
-    mov %r12, $10   # base
-    mov %r13, $0    # temp1 = 0;
+    mov $10, %r12   # base = 10;
+    mov $0, %r13    # temp1 = 0;  // constant 0 for loop test
+    mov $0, %r14    # result = 0;
 
-    mov %rsi, %r15  # count = digit_count; // count will decrease from str_length to 1 before terminating at 0.
+    mov %rsi, %r15  # count = digit_count; // count decreases from str_length to 1... ends at 0!
+
 LoopConvert:
-    cmp %r15, $0
+    cmp %r15, %r13
     je EndConvert
 
     # get digit value
@@ -60,6 +64,7 @@ LoopConvert:
     dec %rdi          # literal_ptr--;
     dec %r15          # count--;
     jmp LoopConvert
+
 EndConvert:
     # move result into %rax
     mov %r14, %rax  # result = sub_result;
