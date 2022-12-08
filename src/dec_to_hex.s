@@ -1,5 +1,5 @@
 # parse_dec.s
-# Contains decimal literal parsing code without any stdc function calls. Syscalls are okay.
+# Contains a program that reads a 4 digit decimal number and prints its equivalent hex.
 # Derek Tan
 
 .text
@@ -163,17 +163,30 @@ EndLoop:
 
 .global main
 main:
-    # 1. Call parseHex4... then compare return result to $1234 in %r8!
+    # 1. Prompt on stdout for 4 digits from stdin.
+    mov $1, %rax              # syscall write
+    mov $1, %rdi              # use stdout
+    mov $prompt, %rsi         # src is prompt
+    mov $14, %rdx              # write_len is 4
+    syscall
+    
+    mov $0, %rax             # x64 syscall read
+    mov $0, %rdi             # use stdin
+    mov $input_buffer, %rsi  # read to input_buffer
+    mov $4, %rdx             # read 4 digit characters
+    syscall
+
+    # 2. Call parseHex4... then compare return result to $1234 in %r8!
     mov $input_buffer, %rdi
     mov $4, %rsi
-    call parseDec            # test_number = parseDec(input_buffer + 3, 4); // must be 1234
+    call parseDec             # test_number = parseDec(input_buffer + 3, 4); // must be 1234
 
-    # 2. write hex literal for previous result
+    # 3. Write hex literal equivalent to the previous result.
     mov $output_buffer, %rdi
     mov %rax, %rsi
     call writeHexW
 
-    # 3. print hex literal for previous result
+    # 4. Print hex literal for previous result.
     mov $1, %rax              # syscall write
     mov $1, %rdi              # use stdout
     mov $output_buffer, %rsi  # src is success_msg
@@ -185,9 +198,9 @@ main:
 
 .data
 input_buffer:
-    .ascii "1234"              # char input_buffer[5] = "1234"; // real len is 4
+    .ascii "0000"              # char input_buffer[5] = "0000"; // real len is 4
 
-output_buffer: # should be hex 0x04D2?
+output_buffer: # should be hex 0x04D2 for 1234!
     .ascii "\0\0\0\0"          # char output_buffer[5] = ""; // write len is 4
 
 success_msg:
@@ -195,3 +208,6 @@ success_msg:
 
 fail_msg:
     .ascii "Wrong Val.\n"      # const char success_msg[12] = "Wrong Val.\n"; // real len is 11
+
+prompt:
+    .ascii "Put 4 digits:\n"  # const char prompt[15] = "Put 4 digits:\n"; // real len is 14
