@@ -89,77 +89,77 @@ EndConvert:
 # Returns: 0 always.
 .global writeHexW
 writeHexW:
-  # preserve regs
-  push %rbx
-  push %rcx
-  push %r12
-  push %r13
-  push %r14
+    # preserve regs
+    push %rbx
+    push %rcx
+    push %r12
+    push %r13
+    push %r14
 
-  # init end_ptr
-  mov %rdi, %rbx
-  add $4, %rbx  # end_ptr = ADDR (buf_ptr + 4)
+    # init end_ptr
+    mov %rdi, %rbx
+    add $4, %rbx  # end_ptr = ADDR (buf_ptr + 4)
 
-  # init shifts
-  mov $0, %rcx  # BZERO(shifts)
-  mov $12, %cl  # shifts = 12
+    # init shifts
+    mov $0, %rcx  # BZERO(shifts)
+    mov $12, %cl  # shifts = 12
 
-  # init mask
-  mov $15, %r12
-  shl %cl, %r12
+    # init mask
+    mov $15, %r12
+    shl %cl, %r12
 
-  # init curr_val
-  mov $0, %r13
+    # init curr_val
+    mov $0, %r13
 
-  # init min_alpha
-  mov $10, %r14
+    # init min_alpha
+    mov $10, %r14
 
 BeginLoop:  # WHILE (ADDR buf_ptr != ADDR end_ptr):
-  cmp %rdi, %rbx
-  je EndLoop
+    cmp %rdi, %rbx
+    je EndLoop
 
-  # get raw half byte for hex with zeroed upper bytes
-  mov %rsi, %r13
-  and %r12, %r13  # curr_val = (num & mask)
+    # get raw half byte for hex with zeroed upper bytes
+    mov %rsi, %r13
+    and %r12, %r13  # curr_val = (num & mask)
 
-  # decode to hex digit value
-  shr %cl, %r13  # curr_val >>= shifts
+    # decode to hex digit value
+    shr %cl, %r13  # curr_val >>= shifts
 
-  # check if digit value is numeric or alpha
-  cmp %r14, %r13
-  jae ElseAlpha
+    # check if digit value is numeric or alpha
+    cmp %r14, %r13
+    jae ElseAlpha
 
 IfNumeric:  # IF (c < 10):
-  # tweak numeric value 0-9 by ASCII offset 48
-  add $48, %r13
-  jmp EndIfs
+    # tweak numeric value 0-9 by ASCII offset 48
+    add $48, %r13
+    jmp EndIfs
 
 ElseAlpha:  # ELSE:
-  # tweak alpha value 10-15 by ASCII offset 55
-  add $55, %r13
+    # tweak alpha value 10-15 by ASCII offset 55
+    add $55, %r13
 
 EndIfs:
-  # write converted hex digit to buffer
-  mov %r13b, (%rdi)
+    # write converted hex digit to buffer
+    mov %r13b, (%rdi)
 
-  inc %rdi  # buf_ptr++
+    inc %rdi  # buf_ptr++
   
-  # adjust bit mask vars
-  sub $4, %cl  # shifts -= 4
-  shr $4, %r12 # mask >>= 4
+    # adjust bit mask vars
+    sub $4, %cl  # shifts -= 4
+    shr $4, %r12 # mask >>= 4
   
-  jmp BeginLoop
+    jmp BeginLoop
 
 EndLoop:
-  # restore regs
-  pop %r14
-  pop %r13
-  pop %r12
-  pop %rcx
-  pop %rbx
+    # restore regs
+    pop %r14
+    pop %r13
+    pop %r12
+    pop %rcx
+    pop %rbx
 
-  mov $0, %rax  # RETURN 0
-  ret
+    mov $0, %rax
+    ret
 
 .global main
 main:
